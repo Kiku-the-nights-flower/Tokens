@@ -129,9 +129,9 @@ char *getBetween(char delim, char ndelim, char *inp) {
     if (p1 && (strlen(inp) - 1 != 0)) {
         p2 = strchr(inp + 1, ndelim);
         if (p2) {
-            size_t resLength = strlen(p1 + 1) - strlen(p2);
+            size_t resLength = (strlen(p1 + 1) - strlen(p2));
             res = (char *) malloc(resLength + 1); // include the null char at end
-            strncpy(res, p1 + 1, resLength);
+            memcpy(res, p1 + 1, resLength);
             res[resLength] = '\0'; //terminating null char at end
             return res;
         }
@@ -201,7 +201,6 @@ bool findSides(char *input, cross *crs) {
 
     return true;
 }
-
 
 
 // standardizes input, splits it by arms so the findSides function can take it
@@ -355,40 +354,46 @@ void walk(TreeNode *root, int *Asum, int *Bsum, bool player) {
 // should drastically reduce the time needed for computing
 
 int main() {
-    /*cross c = cross();
+    // clock_t begin = clock();
+    cross c = cross();
+    // clock_t start = clock();
     char *input = readInput();
+    // clock_t end = clock();
+    // double time_spent = (double) (end - start) / CLOCKS_PER_SEC;
+    // printf("time spent on reading input: %f\n", time_spent);
     if (input == nullptr) {
         free(input);
         printf("Nespravny vstup.\n");
         return 1;
     }
-
-    *//*  if (!findSides(input, &c)) {
-          free(input);
-          printf("Nespravny vstup.\n");
-          return 1;
-      }*//*
-
+    // start = clock();
+    if (!findSides(input, &c)) {
+        free(input);
+        printf("Nespravny vstup.\n");
+        return 1;
+    }
+    // end = clock();
+    // time_spent = ((double) (end - start)) / CLOCKS_PER_SEC;
+    // printf("time spent on parsing: %lf\n", time_spent);
     treeNode root = treeNode(0);
-    clock_t gen = clock();
+    // start = clock();
     generateUniverse(c, &root,
                      c.arms[0].tokenAmount + c.arms[1].tokenAmount + c.arms[2].tokenAmount + c.arms[3].tokenAmount, 0,
                      0, 0, 0);
-    clock_t genEnd = clock();
+    //end = clock();
+    // printf("genUniverse time: %lf\n", ((double) (end - start)) / CLOCKS_PER_SEC);
 
-
-    clock_t evalStart = clock();
+    //start = clock();
     evalTree(&root);
-    clock_t evalEnd = clock();
+    // end = clock();
 
     // takes 1.5s because of the massive depth
     // also allocates a LOT of memory
-    printf("genUniverse time: %lf", ((double) (genEnd - gen)) / CLOCKS_PER_SEC);
-
-    printf("evalTree time: %lf", ((double) (evalEnd - evalStart)) / CLOCKS_PER_SEC);
+    //printf("evalTree time: %lf\n", ((double) (end - start)) / CLOCKS_PER_SEC);
 
     int asum = 0;
     int bsum = 0;
+    printf("Zetony:\n");
     walk(&root, &asum, &bsum, true);
     printf("Celkem A/B: %d/%d\n", asum, bsum);
 
@@ -396,19 +401,9 @@ int main() {
     free(input);
     root.destroy();
 
+    // clock_t end2 = clock();
+    //double time_spent2 = (double) (end2 - begin) / CLOCKS_PER_SEC;
+    //printf("time spent on everything: %f\n", time_spent2);
     return 0;
-*/
-    cross c = cross();
-    char *input = readInput();
-    findSides(input, &c);
 
-    //print out the cross
-    for (int i = 0; i < 4; i++) {
-        printf("%c: ", c.arms[i].name);
-        for (int j = 0; j < c.arms[i].tokenAmount; j++) {
-            printf("%d ", c.arms[i].takeTokenAt(j));
-        }
-        printf("\n");
-    }
-    return 0;
 }
