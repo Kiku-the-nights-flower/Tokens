@@ -3,11 +3,13 @@
 //
 
 struct treeNode;
-struct cross;
+struct cross {
+    cross();
+};
 struct arm;
 
 int tokens();
-bool findSides(char *input, char **n, char **e, char **w, char **s);
+bool findSides(char *input, cross * c);
 char * readUntil(char * input, char until);
 char * readInput();
 char * getBetween(char delim, char ndelim, char * inp);

@@ -129,7 +129,7 @@ char *getBetween(char delim, char ndelim, char *inp) {
     char *res;
     p1 = strchr(inp, delim);
     if (p1) {
-        p2 = strchr(inp, ndelim);
+        p2 = strchr(inp + 1, ndelim);
         if (p2) {
             size_t resLength = strlen(p1 + 1) - strlen(p2);
             res = (char *) malloc(resLength + 1); // include the null char at end
@@ -142,7 +142,7 @@ char *getBetween(char delim, char ndelim, char *inp) {
     return nullptr;
 }
 
-//reallocs a string, then nulls the new 
+//reallocs a string, then nulls the new
 char *reallocArr(char *arr, size_t prevSize, size_t size) {
     arr = (char *) realloc(arr, size);
     memset(arr + prevSize, 0, size - prevSize);
@@ -155,6 +155,9 @@ char *allocString(size_t size) {
     memset(s, 0, size);
     return s;
 }
+
+
+
 
 //converts 1,2,-3 into array {1,2,-3} and saves it into arm (target)
 bool convertIntoTokens(char *input, arm *target) {
@@ -178,16 +181,37 @@ bool convertIntoTokens(char *input, arm *target) {
 }
 
 
+bool findSides(char *input, cross *crs) {
+    char * formatted;
+    size_t pointer = 0;
+    int counter = 0;
+    while ((formatted = getBetween(' ', ' ', input + pointer)) != nullptr) {
+        char id;
+        sscanf(formatted, "%c : { %*s }", &id);
+        char *res = getBetween('{', '}', formatted);
+        (*crs).arms[counter].name = id;
+        if (!convertIntoTokens(res, &((*crs).arms[counter]))) {
+            free(res);
+            return false;
+        }
+        counter++;
+        pointer += strlen(formatted) + 1;
+        free(res);
+        free(formatted);
+    }
+    return true;
+}
+
 //TODO: get rid of strtok as it is unstable in testing
 // ex. takes only - of negative number, forgets that there is a number at all making the program ever so slightly unusable
+/*
 bool findSides(char *input, cross *crs) {
     const char delim[2] = "\n";
-    char *save1;
-    char *token = strtok_r(input, delim, &save1);
+    char * tmp = (char *) malloc(sizeof(char) * 700);
     int counter = 0;
     while (token != nullptr) {
         char id;
-        sscanf(token, "%c : { %*s }", &id);
+        sscanf(token, "%c : { %s }", &id);
         char *res = getBetween('{', '}', token);
         (*crs).arms[counter].name = id;
         if (!convertIntoTokens(res, &((*crs).arms[counter]))) {
@@ -200,6 +224,9 @@ bool findSides(char *input, cross *crs) {
     }
     return true;
 }
+*/
+
+
 
 // standardizes input, splits it by arms so the findSides function can take it
 // also realizes if the input is faulty
@@ -215,7 +242,7 @@ char *readInput() {
                 inputSize *= 2;
             }
             if (c == 'N' || c == 'E' || c == 'W' || c == 'S') {
-                tmp[innerLength] = '\n';
+                tmp[innerLength] = ' ';
                 innerLength++;
             }
             if (c == ' ' &&
@@ -238,14 +265,19 @@ char *readInput() {
                 continue;
             }
 
+            if (c == ' ' && tmp[innerLength - 1] == ':') {
+                continue;
+            }
+
             tmp[innerLength] = c;
             innerLength++;
         }
     }
+    tmp[innerLength] = ' ';
     char *input = allocString(innerLength + 1);
     memcpy(input, tmp, innerLength + 1);
     free(tmp);
-    input[innerLength] = '\0';
+    input[innerLength + 1] = '\0';
     return input;
 }
 
@@ -319,10 +351,6 @@ treeNode *generateUniverse(cross c, treeNode *root, int depth, int nDepth, int e
 
 
 void walk(TreeNode *root, int *Asum, int *Bsum, bool player) {
-    if (root->parent == nullptr) {
-        //ignore him idk yet
-    }
-
     TreeNode tmp = root->children[0];
     int VALUE = INT32_MIN;
     for (int i = 0; i < root->childrenAmount; ++i) {
@@ -359,11 +387,11 @@ int tokens() {
         return 1;
     }
 
-    if (!findSides(input, &c)) {
+  /*  if (!findSides(input, &c)) {
         free(input);
         printf("Nespravny vstup.\n");
         return 1;
-    }
+    }*/
 
     treeNode root = treeNode(0);
     clock_t gen = clock();
