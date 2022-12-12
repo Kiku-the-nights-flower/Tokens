@@ -8,6 +8,7 @@
 #include <string.h>
 #include <stdint.h>
 #include <ctime>
+#include "tokens.h"
 
 typedef struct arm {
     char name;
@@ -76,6 +77,8 @@ typedef struct treeNode {
         path = false;
     }
 
+    treeNode() = default;
+
     void setvalue(int val, char name, int index) {
         value = val;
         armName = name;
@@ -95,19 +98,22 @@ typedef struct treeNode {
         free(children);
     }
 
-
-
-    /*void print(int indent) const {
-        for (int i = 0; i < indent; ++i) {
-            std::cout << " ";
-        }
-        std::cout << value << std::endl;
-        for (int i = 0; i < childrenAmount; ++i) {
-            children[i].print(indent + 1);
+    void emptyChildren() {
+        if (childrenAmount > 0) {
+            this->destroy();
+            children = (treeNode *) (malloc(4 * sizeof(treeNode)));
+            childrenAmount = 0;
         }
     }
-    */
 
+    void emptyChildrenExcept(int index) {
+        treeNode tmp = children[index];
+        memcpy(&tmp, &children[index], sizeof(treeNode));
+        tmp.children = (treeNode *) (malloc(4 * sizeof(treeNode)));
+        tmp.childrenAmount = 0;
+        this->emptyChildren();
+        addNode(tmp);
+    }
 
 
 } TreeNode;
@@ -183,7 +189,15 @@ bool findSides(char *input, cross *crs) {
     while (formatted != nullptr) {
         char id;
         sscanf(formatted, "%c : { %*s }", &id);
+        //check if an arm with id already exists
         char *res = getBetween('{', '}', formatted);
+        for (int i = 0; i < 4; ++i) {
+            if (crs->arms[i].name == id) {
+                free(formatted);
+                free(res);
+                return false;
+            }
+        }
         (*crs).arms[counter].name = id;
         if (!parseArm(res, &((*crs).arms[counter]))) {
             free(res);
@@ -256,7 +270,7 @@ char *readInput() {
     return input;
 }
 
-//takes approx 0.068s
+
 void evalTree(treeNode *root) {
     if (root->childrenAmount == 0) {
         root->valForPlayer = root->value;
@@ -334,7 +348,6 @@ void walk(TreeNode *root, int *Asum, int *Bsum, bool player) {
             VALUE = tmp.valForPlayer;
         }
     }
-
     if (player) {
         printf("A: %c[%d] (%d)\n", tmp.armName, tmp.armIndex, tmp.value);
         *Asum = *Asum + tmp.value;
@@ -342,10 +355,53 @@ void walk(TreeNode *root, int *Asum, int *Bsum, bool player) {
         printf("B: %c[%d] (%d)\n", tmp.armName, tmp.armIndex, tmp.value);
         *Bsum = *Bsum + tmp.value;
     }
-    if (tmp.childrenAmount > 0) {
+    if (tmp.childrenAmount > 0 ) {
         walk(&tmp, Asum, Bsum, !player);
     }
+}
 
+//create a tree of possible moves 3 turns ahead and use the evalTree function on it,
+//get the best move and continue creating the tree from there, until you reach the end of the game
+void solve(treeNode *root, cross c, int depth) {
+    int nDepth = 0;
+    int eDepth = 0;
+    int wDepth = 0;
+    int sDepth = 0;
+    generateUniverse(c, root, depth, 0, 0, 0, 0);
+    evalTree(root);
+    treeNode *temp = root;
+    while (temp->childrenAmount != 0) {
+        //find the child with the biggest value
+        int highestChildVal = INT32_MIN;
+        int highestChild = 0;
+        for (int i = 0; i < temp->childrenAmount; ++i) {
+            if (temp->children[i].valForPlayer > highestChildVal) {
+                highestChildVal = temp->children[i].valForPlayer;
+                highestChild = i;
+            }
+        }
+
+        temp->emptyChildrenExcept(highestChild);
+        temp = &temp->children[0];
+        switch (temp->armName) {
+            case 'N':
+                nDepth++;
+                break;
+            case 'E':
+                eDepth++;
+                break;
+            case 'W':
+                wDepth++;
+                break;
+            case 'S':
+                sDepth++;
+                break;
+            default:
+                break;
+        }
+        generateUniverse(c, temp, depth, nDepth, eDepth, wDepth, sDepth);
+        evalTree(temp);
+    }
 }
 
 
@@ -353,47 +409,36 @@ void walk(TreeNode *root, int *Asum, int *Bsum, bool player) {
 // continue with the picked node to generate/eval the tree
 // should drastically reduce the time needed for computing
 
-int main() {
-    // clock_t begin = clock();
+int tokens() {
+    clock_t begin = clock();
     cross c = cross();
-    // clock_t start = clock();
+    clock_t start = clock();
     char *input = readInput();
-    // clock_t end = clock();
-    // double time_spent = (double) (end - start) / CLOCKS_PER_SEC;
-    // printf("time spent on reading input: %f\n", time_spent);
+    clock_t end = clock();
+    double time_spent = (double) (end - start) / CLOCKS_PER_SEC;
+    printf("time spent on reading input: %f\n", time_spent);
+    printf("Zetony:\n");
     if (input == nullptr) {
         free(input);
         printf("Nespravny vstup.\n");
         return 1;
     }
-    // start = clock();
+    start = clock();
     if (!findSides(input, &c)) {
         free(input);
         printf("Nespravny vstup.\n");
         return 1;
     }
-    // end = clock();
-    // time_spent = ((double) (end - start)) / CLOCKS_PER_SEC;
-    // printf("time spent on parsing: %lf\n", time_spent);
+    end = clock();
+    time_spent = ((double) (end - start)) / CLOCKS_PER_SEC;
+    printf("time spent on parsing: %lf\n", time_spent);
     treeNode root = treeNode(0);
-    // start = clock();
-    generateUniverse(c, &root,
-                     c.arms[0].tokenAmount + c.arms[1].tokenAmount + c.arms[2].tokenAmount + c.arms[3].tokenAmount, 0,
-                     0, 0, 0);
-    //end = clock();
-    // printf("genUniverse time: %lf\n", ((double) (end - start)) / CLOCKS_PER_SEC);
-
-    //start = clock();
-    evalTree(&root);
-    // end = clock();
-
-    // takes 1.5s because of the massive depth
-    // also allocates a LOT of memory
-    //printf("evalTree time: %lf\n", ((double) (end - start)) / CLOCKS_PER_SEC);
-
+    start = clock();
+    solve(&root, c, 7);
+    end = clock();
+    printf("genUniverse time: %lf\n", ((double) (end - start)) / CLOCKS_PER_SEC);
     int asum = 0;
     int bsum = 0;
-    printf("Zetony:\n");
     walk(&root, &asum, &bsum, true);
     printf("Celkem A/B: %d/%d\n", asum, bsum);
 
@@ -401,9 +446,9 @@ int main() {
     free(input);
     root.destroy();
 
-    // clock_t end2 = clock();
-    //double time_spent2 = (double) (end2 - begin) / CLOCKS_PER_SEC;
-    //printf("time spent on everything: %f\n", time_spent2);
+    clock_t end2 = clock();
+    double time_spent2 = (double) (end2 - begin) / CLOCKS_PER_SEC;
+    printf("time spent on everything: %f\n", time_spent2);
     return 0;
 
 }
