@@ -156,18 +156,23 @@ char *allocString(size_t size) {
 
 
 //converts 1,2,-3 into array {1,2,-3} and saves it into arm (target)
-bool convertIntoTokens(char *input, arm *target) {
-    const char delim = ',';
-    int pointer = 0;
-    char *find;
-    while ((find = strchr(input + pointer +1, delim)) != nullptr) {
-        size_t length = strlen(input + pointer + 1) - strlen(find);
-        printf("%s\n", find);
-        pointer += length + 1;
+bool parseArm(char *input, Arm *target) {
+    char *tmp = allocString(strlen(input) + 1);
+    strcpy(tmp, input);
+    char *token = strtok(tmp, ",");
+    int i = 0;
+    while (token != nullptr) {
+        if (isNumber(token)) {
+            target->addToken(atoi(token));
+        } else {
+            free(tmp);
+            return false;
+        }
+        token = strtok(nullptr, ",");
+        i++;
     }
-
+    free(tmp);
     return true;
-
 }
 
 
@@ -180,7 +185,7 @@ bool findSides(char *input, cross *crs) {
         sscanf(formatted, "%c : { %*s }", &id);
         char *res = getBetween('{', '}', formatted);
         (*crs).arms[counter].name = id;
-        if (!convertIntoTokens(res, &((*crs).arms[counter]))) {
+        if (!parseArm(res, &((*crs).arms[counter]))) {
             free(res);
             return false;
         }
@@ -196,30 +201,6 @@ bool findSides(char *input, cross *crs) {
 
     return true;
 }
-
-//TODO: get rid of strtok as it is unstable in testing
-// ex. takes only - of negative number, forgets that there is a number at all making the program ever so slightly unusable
-/*
-bool findSides(char *input, cross *crs) {
-    const char delim[2] = "\n";
-    char * tmp = (char *) malloc(sizeof(char) * 700);
-    int counter = 0;
-    while (token != nullptr) {
-        char id;
-        sscanf(token, "%c : { %s }", &id);
-        char *res = getBetween('{', '}', token);
-        (*crs).arms[counter].name = id;
-        if (!convertIntoTokens(res, &((*crs).arms[counter]))) {
-            free(res);
-            return false;
-        }
-        counter++;
-        token = strtok_r(nullptr, delim, &save1);
-        free(res);
-    }
-    return true;
-}
-*/
 
 
 
@@ -269,7 +250,7 @@ char *readInput() {
         }
     }
     tmp[innerLength] = ' ';
-    char *input = allocString(innerLength + 1);
+    char *input = allocString(innerLength + 2);
     memcpy(input, tmp, innerLength + 1);
     free(tmp);
     input[innerLength + 1] = '\0';
@@ -373,8 +354,8 @@ void walk(TreeNode *root, int *Asum, int *Bsum, bool player) {
 // continue with the picked node to generate/eval the tree
 // should drastically reduce the time needed for computing
 
-int tokens() {
-    cross c = cross();
+int main() {
+    /*cross c = cross();
     char *input = readInput();
     if (input == nullptr) {
         free(input);
@@ -382,11 +363,11 @@ int tokens() {
         return 1;
     }
 
-    /*  if (!findSides(input, &c)) {
+    *//*  if (!findSides(input, &c)) {
           free(input);
           printf("Nespravny vstup.\n");
           return 1;
-      }*/
+      }*//*
 
     treeNode root = treeNode(0);
     clock_t gen = clock();
@@ -416,5 +397,18 @@ int tokens() {
     root.destroy();
 
     return 0;
+*/
+    cross c = cross();
+    char *input = readInput();
+    findSides(input, &c);
 
+    //print out the cross
+    for (int i = 0; i < 4; i++) {
+        printf("%c: ", c.arms[i].name);
+        for (int j = 0; j < c.arms[i].tokenAmount; j++) {
+            printf("%d ", c.arms[i].takeTokenAt(j));
+        }
+        printf("\n");
+    }
+    return 0;
 }
