@@ -50,8 +50,6 @@ typedef struct cross {
             i = arm();
         }
     }
-
-
 } Cross;
 
 
@@ -128,7 +126,7 @@ char *getBetween(char delim, char ndelim, char *inp) {
     char *p1, *p2;
     char *res;
     p1 = strchr(inp, delim);
-    if (p1) {
+    if (p1 && (strlen(inp) - 1 != 0)) {
         p2 = strchr(inp + 1, ndelim);
         if (p2) {
             size_t resLength = strlen(p1 + 1) - strlen(p2);
@@ -157,35 +155,27 @@ char *allocString(size_t size) {
 }
 
 
-
-
 //converts 1,2,-3 into array {1,2,-3} and saves it into arm (target)
 bool convertIntoTokens(char *input, arm *target) {
     const char delim = ',';
-    char *save1 = input;
-    char *num = nullptr;
-    num = strtok_r(input, &delim, &save1);
-    while (num != nullptr) {
-        printf("num: %s\n", num);
-        if (!isNumber(num)) {
-            return false;
-        } else {
-            if (!target->addToken(atoi(num))) {
-                return false;
-            }
-        }
-        num = strtok_r(nullptr, &delim, &save1);
+    int pointer = 0;
+    char *find;
+    while ((find = strchr(input + pointer +1, delim)) != nullptr) {
+        size_t length = strlen(input + pointer + 1) - strlen(find);
+        printf("%s\n", find);
+        pointer += length + 1;
     }
-    free(num);
+
     return true;
+
 }
 
 
 bool findSides(char *input, cross *crs) {
-    char * formatted;
+    char *formatted = getBetween(' ', ' ', input);
     size_t pointer = 0;
     int counter = 0;
-    while ((formatted = getBetween(' ', ' ', input + pointer)) != nullptr) {
+    while (formatted != nullptr) {
         char id;
         sscanf(formatted, "%c : { %*s }", &id);
         char *res = getBetween('{', '}', formatted);
@@ -198,7 +188,12 @@ bool findSides(char *input, cross *crs) {
         pointer += strlen(formatted) + 1;
         free(res);
         free(formatted);
+        if (pointer >= strlen(input)) {
+            break;
+        }
+        formatted = getBetween(' ', ' ', input + pointer);
     }
+
     return true;
 }
 
@@ -387,11 +382,11 @@ int tokens() {
         return 1;
     }
 
-  /*  if (!findSides(input, &c)) {
-        free(input);
-        printf("Nespravny vstup.\n");
-        return 1;
-    }*/
+    /*  if (!findSides(input, &c)) {
+          free(input);
+          printf("Nespravny vstup.\n");
+          return 1;
+      }*/
 
     treeNode root = treeNode(0);
     clock_t gen = clock();

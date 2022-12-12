@@ -3,9 +3,7 @@
 //
 
 struct treeNode;
-struct cross {
-    cross();
-};
+struct cross;
 struct arm;
 
 int tokens();
